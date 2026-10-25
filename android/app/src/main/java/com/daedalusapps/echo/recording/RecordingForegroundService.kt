@@ -75,6 +75,9 @@ class RecordingForegroundService : Service() {
             .setContentText(filename)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            // Samsung's lock screen otherwise may reduce this to an icon with no controls.
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .addAction(
                 NotificationCompat.Action.Builder(
