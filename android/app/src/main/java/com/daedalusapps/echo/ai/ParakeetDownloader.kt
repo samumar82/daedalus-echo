@@ -9,124 +9,100 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-/** Downloads and safely expands the official int8 Parakeet archive into private app storage. */
+/**
+ * Downloads the four official Parakeet runtime files directly and verifies every
+ * byte with the publisher's SHA-256 values before making the model available.
+ * This deliberately avoids bzip2/tar extraction on the phone.
+ */
 class ParakeetDownloader(private val context: Context) {
+    private data class ModelFile(val name: String, val bytes: Long, val sha256: String)
+
+    private val files = listOf(
+        ModelFile(PARAKEET_ENCODER_FILE, 652_184_281L, "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"),
+        ModelFile(PARAKEET_DECODER_FILE, 11_845_275L, "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e"),
+        ModelFile(PARAKEET_JOINER_FILE, 6_355_277L, "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3"),
+        ModelFile(PARAKEET_TOKENS_FILE, 93_939L, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d")
+    )
     private val _state = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val state: StateFlow<DownloadState> = _state.asStateFlow()
-    private val client = OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.MINUTES).build()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.MINUTES)
+        .build()
 
     suspend fun download() = withContext(Dispatchers.IO) {
         val finalDir = parakeetModelDir(context)
-        if (isParakeetReady(context)) { _state.value = DownloadState.Done; return@withContext }
-
-        val stagingDir = File(finalDir.parentFile, "${finalDir.name}.installing")
-        val archive = File(stagingDir.parentFile, "${PARAKEET_MODEL_ID}.tar.bz2.part")
-
-        // An interrupted previous install may already contain all runtime files.
-        // Adopt them first so an app update does not force another 465 MB download.
-        if (promoteStagedModel(stagingDir, finalDir)) {
-            archive.delete()
+        if (isParakeetReady(context)) {
             _state.value = DownloadState.Done
             return@withContext
         }
-
-        stagingDir.deleteRecursively(); stagingDir.mkdirs()
+        val stagingDir = File(finalDir.parentFile, "${finalDir.name}.installing")
+        stagingDir.deleteRecursively()
+        stagingDir.mkdirs()
         try {
-            val request = Request.Builder().url(PARAKEET_ARCHIVE_URL)
-                .addHeader("User-Agent", "DaedalusEcho/ItalianOffline").build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("HTTP ${response.code} while downloading Parakeet")
-                val body = response.body ?: error("Empty Parakeet download")
-                val total = body.contentLength().takeIf { it > 0 } ?: PARAKEET_TOTAL_BYTES
-                var downloaded = 0L
-                FileOutputStream(archive).use { out -> body.byteStream().use { input ->
-                    val buffer = ByteArray(65_536)
-                    while (true) {
-                        val read = input.read(buffer); if (read < 0) break
-                        out.write(buffer, 0, read); downloaded += read
-                        _state.value = DownloadState.Downloading(
-                            ((downloaded * 100) / total).toInt().coerceIn(0, 100),
-                            downloaded, total)
-                    }
-                } }
+            var completeBefore = 0L
+            for (modelFile in files) {
+                downloadAndVerify(modelFile, stagingDir, completeBefore)
+                completeBefore += modelFile.bytes
             }
-            _state.value = DownloadState.Installing("Installing Parakeet model…")
-            extractModelArchive(archive, stagingDir)
-            check(promoteStagedModel(stagingDir, finalDir)) { "Incomplete Parakeet archive" }
+            File(stagingDir, PARAKEET_READY_MARKER).writeText("complete")
+            _state.value = DownloadState.Installing("Finalizing Parakeet model…")
+            finalDir.deleteRecursively()
+            check(stagingDir.renameTo(finalDir)) { "Could not finalize Parakeet installation" }
+            check(isParakeetReady(context)) { "Parakeet installation verification failed" }
             _state.value = DownloadState.Done
         } catch (e: Exception) {
             Log.e("ParakeetDL", "Model download failed", e)
             _state.value = DownloadState.Failed(e.message ?: "Unknown error")
         } finally {
-            archive.delete()
-            stagingDir.deleteRecursively()
+            if (!isParakeetReady(context)) stagingDir.deleteRecursively()
         }
     }
 
-    private fun promoteStagedModel(stagingDir: File, finalDir: File): Boolean {
-        val extracted = File(stagingDir, PARAKEET_MODEL_ID)
-        val required = listOf(
-            PARAKEET_ENCODER_FILE,
-            PARAKEET_DECODER_FILE,
-            PARAKEET_JOINER_FILE,
-            PARAKEET_TOKENS_FILE
-        )
-        if (!extracted.isDirectory || !File(extracted, PARAKEET_READY_MARKER).isFile ||
-            !required.all { File(extracted, it).isFile }) return false
-        finalDir.deleteRecursively()
-        if (!extracted.renameTo(finalDir)) extracted.copyRecursively(finalDir, overwrite = true)
-        return isParakeetReady(context)
-    }
-
-    private fun extractModelArchive(archive: File, stagingDir: File) {
-        val root = stagingDir.canonicalFile
-        val modelPrefix = "${PARAKEET_MODEL_ID}/"
-        val required = setOf(
-            PARAKEET_ENCODER_FILE,
-            PARAKEET_DECODER_FILE,
-            PARAKEET_JOINER_FILE,
-            PARAKEET_TOKENS_FILE
-        )
-        val extracted = File(stagingDir, PARAKEET_MODEL_ID)
-        extracted.mkdirs()
-        TarArchiveInputStream(BZip2CompressorInputStream(archive.inputStream())).use { tar ->
-            while (true) {
-                val entry = tar.nextTarEntry ?: break
-                val output = File(stagingDir, entry.name).canonicalFile
-                require(output.path.startsWith(root.path + File.separator)) {
-                    "Unsafe archive path: ${entry.name}"
-                }
-                val filename = entry.name.removePrefix(modelPrefix)
-                if (!entry.isDirectory && entry.name.startsWith(modelPrefix) && filename in required) {
-                    output.parentFile?.mkdirs()
-                    val temporary = File(output.parentFile, ".${output.name}.part")
-                    temporary.delete()
-                    temporary.outputStream().use { out ->
-                        val buffer = ByteArray(65_536)
-                        var remaining = entry.size
-                        while (remaining > 0) {
-                            val requestSize = minOf(buffer.size.toLong(), remaining).toInt()
-                            val read = tar.read(buffer, 0, requestSize)
-                            check(read > 0) { "Unexpected end of Parakeet archive" }
-                            out.write(buffer, 0, read)
-                            remaining -= read
-                        }
+    private fun downloadAndVerify(model: ModelFile, stagingDir: File, completeBefore: Long) {
+        val temporary = File(stagingDir, ".${model.name}.part")
+        val destination = File(stagingDir, model.name)
+        temporary.delete()
+        val request = Request.Builder()
+            .url(PARAKEET_MODEL_URL_BASE + model.name)
+            .addHeader("User-Agent", "DaedalusEcho/ItalianOffline")
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "HTTP ${response.code} while downloading ${model.name}" }
+            val body = response.body ?: error("Empty download for ${model.name}")
+            val digest = MessageDigest.getInstance("SHA-256")
+            var downloaded = 0L
+            FileOutputStream(temporary).use { out ->
+                body.byteStream().use { input ->
+                    val buffer = ByteArray(65_536)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        out.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        downloaded += read
+                        val current = completeBefore + downloaded
+                        _state.value = DownloadState.Downloading(
+                            ((current * 100) / PARAKEET_TOTAL_BYTES).toInt().coerceIn(0, 99),
+                            current,
+                            PARAKEET_TOTAL_BYTES
+                        )
                     }
-                    check(temporary.renameTo(output)) { "Could not finalize ${output.name}" }
-                    // The app only needs these four files. Avoid extracting unrelated
-                    // archive entries after they are all present.
-                    if (required.all { File(extracted, it).isFile }) break
                 }
             }
+            check(downloaded == model.bytes) {
+                "${model.name}: downloaded $downloaded bytes, expected ${model.bytes}"
+            }
+            val actualHash = digest.digest().joinToString("") { "%02x".format(it) }
+            check(actualHash.equals(model.sha256, ignoreCase = true)) {
+                "${model.name}: integrity check failed"
+            }
+            check(temporary.renameTo(destination)) { "Could not finalize ${model.name}" }
         }
-        require(required.all { File(extracted, it).isFile }) { "Incomplete Parakeet archive" }
-        File(extracted, PARAKEET_READY_MARKER).writeText("complete")
     }
 }
