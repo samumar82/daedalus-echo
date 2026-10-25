@@ -23,13 +23,19 @@ private const val CHUNK_SAMPLES = CHUNK_DURATION_SECONDS * TARGET_SAMPLE_RATE
 
 class TranscriptionService(private val context: Context) {
 
-    suspend fun transcribe(audioFile: File): String = withContext(Dispatchers.IO) {
+    suspend fun transcribe(
+        audioFile: File,
+        onProgress: ((completedChunks: Int, totalChunks: Int) -> Unit)? = null
+    ): String = withContext(Dispatchers.IO) {
         if (!isParakeetReady(context)) return@withContext ""
         Log.i(TAG, "Using Parakeet TDT v3 for ${audioFile.name}")
-        transcribeWithParakeet(audioFile)
+        transcribeWithParakeet(audioFile, onProgress)
     }
 
-    private fun transcribeWithParakeet(audioFile: File): String {
+    private fun transcribeWithParakeet(
+        audioFile: File,
+        onProgress: ((completedChunks: Int, totalChunks: Int) -> Unit)?
+    ): String {
         val dir = parakeetModelDir(context)
         val config = OfflineRecognizerConfig(
             modelConfig = OfflineModelConfig(
@@ -52,6 +58,7 @@ class TranscriptionService(private val context: Context) {
             val totalChunks = (pcm.size + CHUNK_SAMPLES - 1) / CHUNK_SAMPLES
             var chunkIndex = 0
             var offset = 0
+            onProgress?.invoke(0, totalChunks)
             while (offset < pcm.size) {
                 val end = minOf(offset + CHUNK_SAMPLES, pcm.size)
                 val chunk = pcm.copyOfRange(offset, end)
@@ -65,6 +72,7 @@ class TranscriptionService(private val context: Context) {
                 Log.i(TAG, "Parakeet chunk ${chunkIndex + 1}/$totalChunks produced ${chunkText.length} characters")
                 if (chunkText.isNotEmpty()) parts.add(chunkText)
                 chunkIndex++
+                onProgress?.invoke(chunkIndex, totalChunks)
                 offset = end
             }
 
