@@ -8,10 +8,10 @@ A standalone Android voice recorder, transcription, and AI analysis application.
 ## Features
 
 - **Local Voice Recording** — Record high-quality audio directly in the app using the device microphone or a Bluetooth headset (SCO)
-- **On-Device Transcription** — Whisper base.en via sherpa-onnx; speech-to-text happens entirely offline and audio never leaves your phone
+- **Italian-First On-Device Transcription** — Parakeet TDT v3 int8 via sherpa-onnx; Italian and 24 other European languages are recognized locally and audio never leaves the phone
 - **AI Analysis** — Gemma 3 1B generates a title, summary, key topics, and a structured mind map per recording
 - **Ask Your Notes** — Semantic Q&A across your whole library: relevant recordings are retrieved by meaning, then Gemma synthesizes a detailed answer citing specific sources
-- **Action Items** — AI extracts to-do items from your recordings and tracks them on a dedicated Todo screen
+- **Meeting workflow** — Italian summaries preserve a user-editable glossary and surface decisions, open questions and explicitly assigned actions; long meetings are synthesized in chunks on-device
 - **Knowledge Graph** — Visualize semantic connections and shared topics across all of your recordings
 - **Full-Text Search** — Instantly search across all transcripts and summaries
 - **Export** — Share your summaries, mind maps, and Q&A answers as Markdown or copy them to the clipboard
@@ -66,7 +66,7 @@ Popular compatible device series include:
    ```
 3. On first launch the app will prompt you to download the AI models from Settings:
    - **Gemma 3 1B** (~555 MB) — on-device summarization and Q&A
-   - **Whisper base.en** (~119 MB) — on-device speech-to-text
+   - **Parakeet TDT v3 int8** (~1.25 GB) — Italian-first multilingual on-device speech-to-text
    - **Universal Sentence Encoder** (~26 MB) — on-device text embeddings for semantic Ask
 4. Tap the record button on the home screen to start recording audio.
 
@@ -77,7 +77,7 @@ All audio recording and AI processing happens locally on your Android device:
 ```
 [ Built-in / BT Mic ] ──Record──► Android app
                                       │
-                                 Whisper STT
+                                 Parakeet TDT v3 STT
                                  (on-device)
                                       │
                                  Gemma 3 1B
@@ -98,7 +98,7 @@ Beyond per-recording analysis, **Ask Your Notes** embeds every transcript on-dev
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM · Room · StateFlow |
 | On-device LLM | MediaPipe 0.10.35 + Gemma 3 1B (`.task` format) |
-| Transcription | sherpa-onnx 1.13.2 + Whisper base.en int8 ONNX |
+| Transcription | sherpa-onnx 1.13.2 + Parakeet TDT v3 int8 ONNX |
 | Semantic search | MediaPipe Text Embedder + Universal Sentence Encoder |
 | Audio Recording | AudioRecord + Bluetooth SCO support |
 | Database | Room 2.6.1 + SQLite WAL |
