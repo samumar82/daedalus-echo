@@ -33,18 +33,18 @@ riesegui lo stesso comando.
 
 ## Primo avvio
 
-1. Apri l'app e premi **Download All Models**.
+1. Apri l'app e premi **Download required speech models**.
 2. Tieni l'app aperta mentre scarica i modelli.
 3. La build scarica e verifica i file Parakeet singolarmente; non chiudere
-   l'app prima del messaggio di completamento. Se Gemma 4 E2B è già presente,
-   la configurazione iniziale la riconosce e non riscarica Gemma 3.
+   l'app prima del messaggio di completamento. Gemma 3 non viene più scaricato.
 4. Quando Android chiede l'autorizzazione alle **notifiche**, scegli **Consenti**:
    serve per i controlli Pausa/Riprendi e Stop visibili anche a schermo bloccato.
 5. Poi registra una prova breve, premi stop e verifica trascrizione e
    riepilogo.
 
 I modelli vengono elaborati sul telefono. Servono almeno **2 GB liberi** per
-download, installazione e funzionamento agevole.
+download, installazione e funzionamento agevole; con Gemma 4 E2B considera
+almeno **5 GB liberi**.
 
 Ogni registrazione completata viene inoltre copiata in **Documenti/Daedalus Echo**
 come documento, non nella libreria Musica. Questa copia resta disponibile anche
