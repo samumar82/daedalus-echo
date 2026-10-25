@@ -112,6 +112,11 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                                 progressPct = state.progressPct
                                 statusText = "Downloading Parakeet Italian model (2/3): ${state.progressPct}%"
                             }
+                        } else if (state is DownloadState.Installing) {
+                            withContext(Dispatchers.Main) {
+                                progressPct = 100
+                                statusText = "Installing Parakeet Italian model (2/3)…"
+                            }
                         }
                     }
                 }
