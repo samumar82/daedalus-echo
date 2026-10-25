@@ -426,7 +426,7 @@ private fun SummaryTab(summary: String, query: String) {
         ) {
             val sections = parseSummarySections(summary)
             if (sections.isEmpty()) {
-                Text(highlightMatches(summary, query), style = MaterialTheme.typography.bodyMedium)
+                SummaryText(summary, query)
             } else {
                 sections.forEach { (key, value) ->
                     Text(
@@ -435,8 +435,47 @@ private fun SummaryTab(summary: String, query: String) {
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text(text = highlightMatches(value, query), style = MaterialTheme.typography.bodyMedium)
+                    SummaryText(value, query)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryText(rawText: String, query: String) {
+    val normalized = rawText
+        .replace("\\r\\n", "\n")
+        .replace("\\n", "\n")
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        normalized.lines().forEach { rawLine ->
+            val line = rawLine.trim()
+            when {
+                line.isBlank() -> Spacer(Modifier.size(2.dp))
+                line.startsWith("## ") -> Text(
+                    text = line.removePrefix("## ").trim(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                line.startsWith("# ") -> Text(
+                    text = line.removePrefix("# ").trim(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                line.startsWith("- ") || line.startsWith("• ") -> Row {
+                    Text("• ", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = highlightMatches(line.drop(2).trim(), query),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                else -> Text(
+                    text = highlightMatches(line, query),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
