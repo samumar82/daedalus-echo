@@ -142,7 +142,7 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
             }
 
             // Step 3: Gemma 3 1B (555 MB)
-            if (!modelFile(context).exists()) {
+            if (!hasSummaryModel(context)) {
                 withContext(Dispatchers.Main) {
                     downloadStep = DownloadStep.GEMMA
                     progressPct = 0
@@ -265,7 +265,7 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                         "Daedalus processes transcription and summaries entirely on-device for 100% privacy. To begin, click below to download the required models:\n\n" +
                         "• Universal Sentence Encoder (~26 MB)\n" +
                         "• Parakeet TDT v3 multilingual (~1.25 GB)\n" +
-                        "• Gemma 3 1B (~555 MB)\n\n" +
+                        "• Gemma 3 1B (~555 MB), unless Gemma 4 is already installed\n\n" +
                         "Total size is ~1.85 GB. Parakeet recognizes Italian and other European languages locally; speaker identity is not inferred.",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Start,
