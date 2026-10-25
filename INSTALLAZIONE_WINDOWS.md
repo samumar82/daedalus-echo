@@ -43,6 +43,10 @@ riesegui lo stesso comando.
 I modelli vengono elaborati sul telefono. Servono almeno **2 GB liberi** per
 download, installazione e funzionamento agevole.
 
+Ogni registrazione completata viene inoltre copiata in **Documenti/Daedalus Echo**
+come documento, non nella libreria Musica. Questa copia resta disponibile anche
+se l'app viene aggiornata o rimossa.
+
 ## Aggiornamenti
 
 Per installare gli aggiornamenti futuri, ricollega il telefono e riesegui
