@@ -78,7 +78,8 @@ class ParakeetDownloader(private val context: Context) {
             PARAKEET_JOINER_FILE,
             PARAKEET_TOKENS_FILE
         )
-        if (!extracted.isDirectory || !required.all { File(extracted, it).isFile }) return false
+        if (!extracted.isDirectory || !File(extracted, PARAKEET_READY_MARKER).isFile ||
+            !required.all { File(extracted, it).isFile }) return false
         finalDir.deleteRecursively()
         if (!extracted.renameTo(finalDir)) extracted.copyRecursively(finalDir, overwrite = true)
         return isParakeetReady(context)
@@ -105,7 +106,9 @@ class ParakeetDownloader(private val context: Context) {
                 val filename = entry.name.removePrefix(modelPrefix)
                 if (!entry.isDirectory && entry.name.startsWith(modelPrefix) && filename in required) {
                     output.parentFile?.mkdirs()
-                    output.outputStream().use { out ->
+                    val temporary = File(output.parentFile, ".${output.name}.part")
+                    temporary.delete()
+                    temporary.outputStream().use { out ->
                         val buffer = ByteArray(65_536)
                         var remaining = entry.size
                         while (remaining > 0) {
@@ -116,6 +119,7 @@ class ParakeetDownloader(private val context: Context) {
                             remaining -= read
                         }
                     }
+                    check(temporary.renameTo(output)) { "Could not finalize ${output.name}" }
                     // The app only needs these four files. Avoid extracting unrelated
                     // archive entries after they are all present.
                     if (required.all { File(extracted, it).isFile }) break
@@ -123,5 +127,6 @@ class ParakeetDownloader(private val context: Context) {
             }
         }
         require(required.all { File(extracted, it).isFile }) { "Incomplete Parakeet archive" }
+        File(extracted, PARAKEET_READY_MARKER).writeText("complete")
     }
 }
