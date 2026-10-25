@@ -137,7 +137,9 @@ dependencies {
     // HTTP (model download only)
     implementation(libs.okhttp)
 
-    // On-device local LLM runtime for modern .litertlm Gemma models.
+    // Legacy runtime stays available while existing Gemma 3 1B installations are supported.
+    implementation(libs.mediapipe.genai)
+    // Modern local runtime for optional .litertlm Gemma models.
     implementation(libs.litertlm.android)
     // On-device text embeddings for semantic note search
     implementation(libs.mediapipe.tasks.text)
