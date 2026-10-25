@@ -98,8 +98,12 @@ fun isParakeetReady(context: Context): Boolean {
 fun modelFile(context: Context): File =
     File(modelsDir(context), GEMMA3_1B.filename)
 
+/** Either supported local summary engine satisfies first-run setup. */
+fun hasSummaryModel(context: Context): Boolean =
+    modelFile(context).isFile || gemma4E2bFile(context).length() >= GEMMA4_E2B_MIN_BYTES
+
 fun areAllModelsReady(context: Context): Boolean {
-    return modelFile(context).exists() &&
+    return hasSummaryModel(context) &&
            isParakeetReady(context) &&
            embeddingModelFile(context).exists()
 }
