@@ -27,6 +27,10 @@ import com.daedalusapps.echo.ai.EMBEDDING_MODEL_FILE
 import com.daedalusapps.echo.ai.EMBEDDING_MODEL_SIZE_BYTES
 import com.daedalusapps.echo.ai.EMBEDDING_MODEL_URL
 import com.daedalusapps.echo.ai.GEMMA3_1B
+import com.daedalusapps.echo.ai.GEMMA4_E2B_FILE
+import com.daedalusapps.echo.ai.GEMMA4_E2B_MIN_BYTES
+import com.daedalusapps.echo.ai.GEMMA4_E2B_PREF
+import com.daedalusapps.echo.ai.gemma4E2bFile
 import com.daedalusapps.echo.ai.LocalModel
 import com.daedalusapps.echo.ai.MEETING_GLOSSARY_KEY
 import com.daedalusapps.echo.ai.ModelDownloader
@@ -170,6 +174,30 @@ fun SettingsScreen(
     val embeddingState by embeddingDownloader.state.collectAsState()
     val embeddingReady = remember(embeddingState) { embeddingModelFile(context).exists() }
 
+    var gemma4Ready by remember { mutableStateOf(gemma4E2bFile(context).length() >= GEMMA4_E2B_MIN_BYTES) }
+    val gemma4ImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val dest = gemma4E2bFile(context)
+                    val tmp = java.io.File(dest.parentFile, "$GEMMA4_E2B_FILE.tmp")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tmp.outputStream().use { input.copyTo(it) }
+                    } ?: error("Cannot read selected model")
+                    check(tmp.length() >= GEMMA4_E2B_MIN_BYTES) { "Selected file is not a complete Gemma 4 E2B model" }
+                    if (!tmp.renameTo(dest)) { tmp.copyTo(dest, overwrite = true); tmp.delete() }
+                }
+                prefs.edit().putBoolean(GEMMA4_E2B_PREF, true).apply()
+                gemma4Ready = true
+                snackbar.showSnackbar("Gemma 4 E2B enabled. Restart the app before analyzing.")
+            } catch (e: Exception) {
+                snackbar.showSnackbar("Gemma 4 import failed: ${e.message}")
+            }
+        }
+    )
+
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
         onResult = { uri ->
@@ -256,6 +284,15 @@ fun SettingsScreen(
                         Text(GEMMA3_1B.displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Text(GEMMA3_1B.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Active", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+
+                Card(colors = CardDefaults.cardColors(containerColor = if (gemma4Ready) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Gemma 4 E2B — quality summaries", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text("~2.6 GB · Offline · import after accepting the Gemma licence on Hugging Face", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (gemma4Ready) Text("Active after app restart", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        else OutlinedButton(onClick = { gemma4ImportLauncher.launch(arrayOf("application/octet-stream", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Import Gemma 4 E2B") }
                     }
                 }
 
