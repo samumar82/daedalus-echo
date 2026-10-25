@@ -8,7 +8,7 @@ import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
-import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import com.k2fsa.sherpa.onnx.OfflineTransducerModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -24,29 +24,29 @@ private const val CHUNK_SAMPLES = CHUNK_DURATION_SECONDS * TARGET_SAMPLE_RATE
 class TranscriptionService(private val context: Context) {
 
     suspend fun transcribe(audioFile: File): String = withContext(Dispatchers.IO) {
-        if (!isWhisperReady(context)) return@withContext ""
-        Log.i(TAG, "Using Whisper for ${audioFile.name}")
-        transcribeWithWhisper(audioFile)
+        if (!isParakeetReady(context)) return@withContext ""
+        Log.i(TAG, "Using Parakeet TDT v3 for ${audioFile.name}")
+        transcribeWithParakeet(audioFile)
     }
 
-    private fun transcribeWithWhisper(audioFile: File): String {
-        val dir = whisperModelDir(context)
+    private fun transcribeWithParakeet(audioFile: File): String {
+        val dir = parakeetModelDir(context)
         val config = OfflineRecognizerConfig(
             modelConfig = OfflineModelConfig(
-                whisper = OfflineWhisperModelConfig(
-                    encoder = File(dir, WHISPER_ENCODER_FILE).absolutePath,
-                    decoder = File(dir, WHISPER_DECODER_FILE).absolutePath,
-                    language = "en",
-                    task = "transcribe",
+                transducer = OfflineTransducerModelConfig(
+                    encoder = File(dir, PARAKEET_ENCODER_FILE).absolutePath,
+                    decoder = File(dir, PARAKEET_DECODER_FILE).absolutePath,
+                    joiner = File(dir, PARAKEET_JOINER_FILE).absolutePath,
                 ),
-                tokens = File(dir, WHISPER_TOKENS_FILE).absolutePath,
+                tokens = File(dir, PARAKEET_TOKENS_FILE).absolutePath,
+                modelType = "nemo_transducer",
                 numThreads = 4,
             )
         )
         val recognizer = OfflineRecognizer(config = config)
         return try {
             val pcm = decodeToPcmFloat(audioFile)
-            Log.i(TAG, "Decoded ${pcm.size} float samples, feeding to Whisper")
+            Log.i(TAG, "Decoded ${pcm.size} float samples, feeding to Parakeet")
 
             val parts = mutableListOf<String>()
             var offset = 0
@@ -63,7 +63,7 @@ class TranscriptionService(private val context: Context) {
             }
 
             val text = parts.joinToString(" ")
-            Log.i(TAG, "Whisper complete: ${text.length} chars across ${parts.size} chunk(s)")
+            Log.i(TAG, "Parakeet complete: ${text.length} chars across ${parts.size} chunk(s)")
             text
         } finally {
             recognizer.release()
