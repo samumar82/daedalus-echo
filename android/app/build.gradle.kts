@@ -106,6 +106,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
 kapt {
     arguments {
         arg("room.schemaLocation", "$projectDir/schemas")
