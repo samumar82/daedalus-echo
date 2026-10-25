@@ -247,6 +247,12 @@ fun NoteDetailScreen(
                 }
                 if (isProcessing) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = syncProgress ?: "Processing audio…",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
                 }
                 // Playback progress bar
                 val totalDuration = playbackDuration.takeIf { it > 0L } ?: (note?.durationMillis ?: 0L)
