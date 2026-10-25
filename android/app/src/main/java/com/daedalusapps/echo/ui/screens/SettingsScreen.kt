@@ -175,6 +175,7 @@ fun SettingsScreen(
     val embeddingReady = remember(embeddingState) { embeddingModelFile(context).exists() }
 
     var gemma4Ready by remember { mutableStateOf(gemma4E2bFile(context).length() >= GEMMA4_E2B_MIN_BYTES) }
+    var gemma4Enabled by remember { mutableStateOf(prefs.getBoolean(GEMMA4_E2B_PREF, false)) }
     val gemma4ImportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -191,6 +192,7 @@ fun SettingsScreen(
                 }
                 prefs.edit().putBoolean(GEMMA4_E2B_PREF, true).apply()
                 gemma4Ready = true
+                gemma4Enabled = true
                 snackbar.showSnackbar("Gemma 4 E2B enabled. Restart the app before analyzing.")
             } catch (e: Exception) {
                 snackbar.showSnackbar("Gemma 4 import failed: ${e.message}")
@@ -291,7 +293,8 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Gemma 4 E2B — quality summaries", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Text("~2.6 GB · Offline · import after accepting the Gemma licence on Hugging Face", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (gemma4Ready) Text("Active after app restart", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        if (gemma4Ready && gemma4Enabled) Text("Active after app restart", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        else if (gemma4Ready) Button(onClick = { prefs.edit().putBoolean(GEMMA4_E2B_PREF, true).apply(); gemma4Enabled = true }, modifier = Modifier.fillMaxWidth()) { Text("Enable Gemma 4 E2B") }
                         else OutlinedButton(onClick = { gemma4ImportLauncher.launch(arrayOf("application/octet-stream", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Import Gemma 4 E2B") }
                     }
                 }
