@@ -29,6 +29,10 @@
         android:allowBackup="true"
         android:supportsRtl="true">
 
+        <!-- LiteRT-LM may use the Galaxy GPU when it is available. -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
