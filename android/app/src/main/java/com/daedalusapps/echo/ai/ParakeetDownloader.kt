@@ -34,6 +34,7 @@ class ParakeetDownloader(private val context: Context) {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("HTTP ${response.code} while downloading Parakeet")
                 val body = response.body ?: error("Empty Parakeet download")
+                val total = body.contentLength().takeIf { it > 0 } ?: PARAKEET_TOTAL_BYTES
                 var downloaded = 0L
                 FileOutputStream(archive).use { out -> body.byteStream().use { input ->
                     val buffer = ByteArray(65_536)
@@ -41,11 +42,12 @@ class ParakeetDownloader(private val context: Context) {
                         val read = input.read(buffer); if (read < 0) break
                         out.write(buffer, 0, read); downloaded += read
                         _state.value = DownloadState.Downloading(
-                            ((downloaded * 100) / PARAKEET_TOTAL_BYTES).toInt().coerceIn(0, 99),
-                            downloaded, PARAKEET_TOTAL_BYTES)
+                            ((downloaded * 100) / total).toInt().coerceIn(0, 100),
+                            downloaded, total)
                     }
                 } }
             }
+            _state.value = DownloadState.Installing("Installing Parakeet model…")
             extractModelArchive(archive, stagingDir)
             val extracted = File(stagingDir, PARAKEET_MODEL_ID)
             val required = listOf(PARAKEET_ENCODER_FILE, PARAKEET_DECODER_FILE, PARAKEET_JOINER_FILE, PARAKEET_TOKENS_FILE)
@@ -61,15 +63,34 @@ class ParakeetDownloader(private val context: Context) {
 
     private fun extractModelArchive(archive: File, stagingDir: File) {
         val root = stagingDir.canonicalFile
+        val modelPrefix = "${PARAKEET_MODEL_ID}/"
+        val required = setOf(
+            PARAKEET_ENCODER_FILE,
+            PARAKEET_DECODER_FILE,
+            PARAKEET_JOINER_FILE,
+            PARAKEET_TOKENS_FILE
+        )
+        val extracted = File(stagingDir, PARAKEET_MODEL_ID)
+        extracted.mkdirs()
         TarArchiveInputStream(BZip2CompressorInputStream(archive.inputStream())).use { tar ->
             while (true) {
                 val entry = tar.nextTarEntry ?: break
                 val output = File(stagingDir, entry.name).canonicalFile
                 require(output.path.startsWith(root.path + File.separator)) { "Unsafe archive path: ${entry.name}" }
-                if (entry.isDirectory) output.mkdirs() else {
-                    output.parentFile?.mkdirs(); output.outputStream().use { tar.copyTo(it) }
+                val filename = entry.name.removePrefix(modelPrefix)
+                if (!entry.isDirectory && entry.name.startsWith(modelPrefix) && filename in required) {
+                    output.parentFile?.mkdirs()
+                    output.outputStream().use { out ->
+                        val buffer = ByteArray(65_536)
+                        var read: Int
+                        while (tar.read(buffer).also { read = it } >= 0) out.write(buffer, 0, read)
+                    }
+                    // Only the runtime files are needed. Skipping archive extras prevents
+                    // first-run setup from waiting on unrelated archive content.
+                    if (required.all { File(extracted, it).isFile }) break
                 }
             }
         }
+        require(required.all { File(extracted, it).isFile }) { "Incomplete Parakeet archive" }
     }
 }
