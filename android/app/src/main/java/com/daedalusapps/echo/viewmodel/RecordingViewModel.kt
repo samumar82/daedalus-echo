@@ -30,6 +30,7 @@ import com.daedalusapps.echo.data.db.AppDatabase
 import com.daedalusapps.echo.data.model.AudioUtils
 import com.daedalusapps.echo.data.model.Recording
 import com.daedalusapps.echo.recording.AudioRecorder
+import com.daedalusapps.echo.recording.RecordingForegroundService
 import com.daedalusapps.echo.ui.mindmap.GlobalGraph
 import com.daedalusapps.echo.ui.mindmap.GraphBuilder
 import kotlinx.coroutines.CoroutineDispatcher
@@ -197,6 +198,7 @@ class RecordingViewModel @JvmOverloads constructor(
         maxDurationCapSeconds = readMaxDurationCapSeconds()
 
         try {
+            RecordingForegroundService.start(context, file.name)
             audioRecorder.start(file, useBluetoothMic.value)
             _isRecording.value = true
             _isPaused.value = false
@@ -207,6 +209,7 @@ class RecordingViewModel @JvmOverloads constructor(
             recordingTimerJob = launchTimerLoop(initialElapsed = 0L)
             Log.i("RecordingViewModel", "Started local recording: ${file.name}")
         } catch (e: Exception) {
+            RecordingForegroundService.stop(context)
             Log.e("RecordingViewModel", "Failed to start local recording", e)
             _aiError.value = "Failed to start recording: ${e.message}"
         }
@@ -260,6 +263,7 @@ class RecordingViewModel @JvmOverloads constructor(
     fun stopLocalRecording() {
         if (!_isRecording.value) return
         audioRecorder.stop()
+        RecordingForegroundService.stop(getApplication())
         recordingTimerJob?.cancel()
         _isRecording.value = false
         _isPaused.value = false
