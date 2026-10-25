@@ -196,7 +196,7 @@ fun SettingsScreen(
                 snackbar.showSnackbar("Gemma 4 import failed: ${e.message}")
             }
         }
-    )
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
