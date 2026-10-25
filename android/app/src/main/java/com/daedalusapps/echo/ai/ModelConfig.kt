@@ -102,10 +102,11 @@ fun modelFile(context: Context): File =
 fun hasSummaryModel(context: Context): Boolean =
     modelFile(context).isFile || gemma4E2bFile(context).length() >= GEMMA4_E2B_MIN_BYTES
 
-fun areAllModelsReady(context: Context): Boolean {
-    return hasSummaryModel(context) &&
-           isParakeetReady(context) &&
-           embeddingModelFile(context).exists()
-}
+/**
+ * First-run setup provisions speech recognition and semantic search only.
+ * Gemma 4 is imported deliberately from Settings, so it is never downloaded implicitly.
+ */
+fun areAllModelsReady(context: Context): Boolean =
+    isParakeetReady(context) && embeddingModelFile(context).exists()
 
 fun selectedModel(context: Context): LocalModel = GEMMA3_1B
