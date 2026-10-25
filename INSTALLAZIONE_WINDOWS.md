@@ -49,6 +49,30 @@ Ogni registrazione completata viene inoltre copiata in **Documenti/Daedalus Echo
 come documento, non nella libreria Musica. Questa copia resta disponibile anche
 se l'app viene aggiornata o rimossa.
 
+
+## Gemma 4 E2B in italiano (facoltativo, consigliato per riassunti)
+
+Gemma 4 E2B offre riassunti più articolati del modello piccolo incluso, ma richiede
+circa **2,6 GB** e impiega più tempo. La trascrizione Parakeet resta separata e non
+deve essere rimossa.
+
+1. Scarica il file `gemma-4-E2B-it.litertlm` da
+   [Hugging Face](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/tree/main)
+   e salvalo in **Download** sul PC.
+2. Collega e sblocca il telefono, quindi esegui questo comando da PowerShell
+   nella cartella `android` del progetto:
+
+```powershell
+$ErrorActionPreference="Stop"; $adb="$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"; $model="$env:USERPROFILE\Downloads\gemma-4-E2B-it.litertlm"; if (!(Test-Path $model)) { throw "Modello non trovato: $model" }; & $adb wait-for-device; & $adb push $model /data/local/tmp/gemma-4-E2B-it.litertlm; & $adb shell run-as com.daedalusapps.echo.debug mkdir -p files/models; & $adb shell run-as com.daedalusapps.echo.debug cp /data/local/tmp/gemma-4-E2B-it.litertlm files/models/gemma-4-E2B-it.litertlm; & $adb shell rm /data/local/tmp/gemma-4-E2B-it.litertlm; & $adb shell run-as com.daedalusapps.echo.debug ls -lh files/models/gemma-4-E2B-it.litertlm
+```
+
+3. In Echo apri **Impostazioni**, abilita **Gemma 4 E2B** e riavvia l'app.
+   L'ultima riga del comando deve mostrare un file di circa **2,4 GB**.
+
+L'aggiornamento dell'app non cancella il modello. Evita però di disinstallare
+l'app: in quel caso Android elimina i modelli presenti nella memoria privata
+dell'app.
+
 ## Aggiornamenti
 
 Per installare gli aggiornamenti futuri, ricollega il telefono e riesegui
