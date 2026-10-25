@@ -51,17 +51,20 @@ fun chunkTranscript(transcript: String, budget: Int = AI_TEXT_BUDGET_DEFAULT): L
     return chunks
 }
 
-const val DEFAULT_PROMPT = OFFLINE_GUARDRAIL + "\n\n" + """Leggi la trascrizione di una riunione qui sotto ed estrai i contenuti in italiano.
+const val DEFAULT_PROMPT = OFFLINE_GUARDRAIL + "\n\n" + """Agisci come segretario di riunione. Leggi integralmente la trascrizione e produci un resoconto fedele, conciso e in italiano naturale.
 
-Restituisci SOLO un oggetto JSON con esattamente queste 5 chiavi. Niente Markdown o blocchi di codice.
+Usa soltanto informazioni presenti nella trascrizione. Non correggere fatti incerti, non inventare partecipanti, decisioni, date o assegnatari. Se un elemento non è chiaro, omettilo.
 
-- "title": titolo specifico, fino a 8 parole, basato su ciò che è stato discusso
-- "shortSummary": una frase chiara che riassume la riunione
-- "topics": array JSON di 3-5 parole chiave dalla trascrizione
-- "mindMap": elenco dei punti principali, una riga per punto con "- ", sotto-punti con "  - "
-- "fullSummary": riepilogo con decisioni, contesto, questioni aperte e sezione "## Azioni" con sole azioni esplicitamente assegnate o concordate; se l'assegnatario non è chiaro scrivi "Da assegnare". Non inventare nomi di parlanti.
+Restituisci SOLO JSON valido, senza Markdown, commenti o testo prima/dopo. Le cinque chiavi devono essere esattamente:
+- "title": titolo concreto, massimo 8 parole
+- "shortSummary": 1-2 frasi chiare
+- "topics": array JSON di 3-5 argomenti realmente trattati
+- "mindMap": punti e sotto-punti in testo semplice, con "- " e "  - "
+- "fullSummary": sezioni "## Contesto", "## Punti principali", "## Decisioni", "## Questioni aperte", "## Azioni". Inserisci un'azione solo se esplicitamente concordata; se manca l'assegnatario scrivi "Da assegnare".
 
-Transcript:"""
+Ogni valore testuale deve essere italiano leggibile: non usare token, abbreviazioni senza spiegazione, markup tecnico o frammenti di parole.
+
+Trascrizione:"""
 
 fun activePrompt(context: Context): String {
     val prefs = context.getSharedPreferences("daedalus_prefs", Context.MODE_PRIVATE)
