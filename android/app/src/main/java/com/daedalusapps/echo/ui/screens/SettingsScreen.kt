@@ -29,10 +29,10 @@ import com.daedalusapps.echo.ai.EMBEDDING_MODEL_URL
 import com.daedalusapps.echo.ai.GEMMA3_1B
 import com.daedalusapps.echo.ai.LocalModel
 import com.daedalusapps.echo.ai.ModelDownloader
-import com.daedalusapps.echo.ai.WHISPER_TOTAL_BYTES
-import com.daedalusapps.echo.ai.WhisperDownloader
+import com.daedalusapps.echo.ai.PARAKEET_TOTAL_BYTES
+import com.daedalusapps.echo.ai.ParakeetDownloader
 import com.daedalusapps.echo.ai.embeddingModelFile
-import com.daedalusapps.echo.ai.isWhisperReady
+import com.daedalusapps.echo.ai.isParakeetReady
 import com.daedalusapps.echo.data.backup.BackupManager
 import com.daedalusapps.echo.data.backup.BackupPrefs
 import com.daedalusapps.echo.data.backup.BackupWorker
@@ -150,9 +150,10 @@ fun SettingsScreen(
         }
     }
 
-    val whisperDownloader = remember { WhisperDownloader(context) }
-    val whisperState by whisperDownloader.state.collectAsState()
-    val whisperReady = remember(whisperState) { isWhisperReady(context) }
+    val parakeetDownloader = remember { ParakeetDownloader(context) }
+    val parakeetState by parakeetDownloader.state.collectAsState()
+    val parakeetReady = remember(parakeetState) { isParakeetReady(context) }
+    var glossary by remember { mutableStateOf(prefs.getString(MEETING_GLOSSARY_KEY, "") ?: "") }
 
     val embeddingModel = remember {
         LocalModel(
@@ -257,28 +258,28 @@ fun SettingsScreen(
                     }
                 }
 
-                // STT — Whisper only
+                // STT — multilingual Parakeet, runs entirely on-device.
                 Text("Speech-to-Text Engine", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Card(colors = CardDefaults.cardColors(
-                    containerColor = if (whisperReady) MaterialTheme.colorScheme.primaryContainer
+                    containerColor = if (parakeetReady) MaterialTheme.colorScheme.primaryContainer
                                      else MaterialTheme.colorScheme.surfaceVariant
                 )) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Whisper base.en", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        Text("~160 MB · High accuracy · On-device", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Parakeet TDT v3 — Italiano", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text("~1.25 GB · Italian + 24 European languages · On-device", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         when {
-                            whisperReady -> Text("Active", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                            whisperState is DownloadState.Downloading -> {
-                                val dl = whisperState as DownloadState.Downloading
+                            parakeetReady -> Text("Active — speaker names are manual, not inferred", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            parakeetState is DownloadState.Downloading -> {
+                                val dl = parakeetState as DownloadState.Downloading
                                 LinearProgressIndicator(progress = { dl.progressPct / 100f }, modifier = Modifier.fillMaxWidth())
-                                Text("Downloading… ${dl.progressPct}%  ·  ${dl.bytesDownloaded / 1_048_576} / ${WHISPER_TOTAL_BYTES / 1_048_576} MB", style = MaterialTheme.typography.bodySmall)
+                                Text("Downloading… ${dl.progressPct}%  ·  ${dl.bytesDownloaded / 1_048_576} / ${PARAKEET_TOTAL_BYTES / 1_048_576} MB", style = MaterialTheme.typography.bodySmall)
                             }
-                            whisperState is DownloadState.Failed -> {
-                                Text("Error: ${(whisperState as DownloadState.Failed).message}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                                OutlinedButton(onClick = { scope.launch { whisperDownloader.download() } }, modifier = Modifier.fillMaxWidth()) { Text("Retry") }
+                            parakeetState is DownloadState.Failed -> {
+                                Text("Error: ${(parakeetState as DownloadState.Failed).message}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                                OutlinedButton(onClick = { scope.launch { parakeetDownloader.download() } }, modifier = Modifier.fillMaxWidth()) { Text("Retry") }
                             }
-                            else -> Button(onClick = { scope.launch { whisperDownloader.download() } }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Download (~160 MB)")
+                            else -> Button(onClick = { scope.launch { parakeetDownloader.download() } }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Download (~1.25 GB)")
                             }
                         }
                     }
@@ -320,6 +321,18 @@ fun SettingsScreen(
                     OutlinedButton(onClick = onNavigateToPromptEditor, modifier = Modifier.fillMaxWidth()) {
                         Text("Configure Prompt")
                     }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Glossario riunioni", style = MaterialTheme.typography.bodyMedium)
+                    Text("Un termine per riga. Viene passato al riepilogo locale per preservare nomi, acronimi e termini di progetto.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(
+                        value = glossary,
+                        onValueChange = { glossary = it; prefs.edit().putString(MEETING_GLOSSARY_KEY, it).apply() },
+                        label = { Text("Es. HarkNote, Parakeet, cliente Alfa") },
+                        minLines = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 ExposedDropdownMenuBox(
