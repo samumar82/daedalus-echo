@@ -25,9 +25,19 @@ class ParakeetDownloader(private val context: Context) {
     suspend fun download() = withContext(Dispatchers.IO) {
         val finalDir = parakeetModelDir(context)
         if (isParakeetReady(context)) { _state.value = DownloadState.Done; return@withContext }
+
         val stagingDir = File(finalDir.parentFile, "${finalDir.name}.installing")
-        stagingDir.deleteRecursively(); stagingDir.mkdirs()
         val archive = File(stagingDir.parentFile, "${PARAKEET_MODEL_ID}.tar.bz2.part")
+
+        // An interrupted previous install may already contain all runtime files.
+        // Adopt them first so an app update does not force another 465 MB download.
+        if (promoteStagedModel(stagingDir, finalDir)) {
+            archive.delete()
+            _state.value = DownloadState.Done
+            return@withContext
+        }
+
+        stagingDir.deleteRecursively(); stagingDir.mkdirs()
         try {
             val request = Request.Builder().url(PARAKEET_ARCHIVE_URL)
                 .addHeader("User-Agent", "DaedalusEcho/ItalianOffline").build()
@@ -49,16 +59,29 @@ class ParakeetDownloader(private val context: Context) {
             }
             _state.value = DownloadState.Installing("Installing Parakeet model…")
             extractModelArchive(archive, stagingDir)
-            val extracted = File(stagingDir, PARAKEET_MODEL_ID)
-            val required = listOf(PARAKEET_ENCODER_FILE, PARAKEET_DECODER_FILE, PARAKEET_JOINER_FILE, PARAKEET_TOKENS_FILE)
-            require(extracted.isDirectory && required.all { File(extracted, it).isFile }) { "Incomplete Parakeet archive" }
-            finalDir.deleteRecursively()
-            if (!extracted.renameTo(finalDir)) extracted.copyRecursively(finalDir, overwrite = true)
+            check(promoteStagedModel(stagingDir, finalDir)) { "Incomplete Parakeet archive" }
             _state.value = DownloadState.Done
         } catch (e: Exception) {
             Log.e("ParakeetDL", "Model download failed", e)
             _state.value = DownloadState.Failed(e.message ?: "Unknown error")
-        } finally { archive.delete(); stagingDir.deleteRecursively() }
+        } finally {
+            archive.delete()
+            stagingDir.deleteRecursively()
+        }
+    }
+
+    private fun promoteStagedModel(stagingDir: File, finalDir: File): Boolean {
+        val extracted = File(stagingDir, PARAKEET_MODEL_ID)
+        val required = listOf(
+            PARAKEET_ENCODER_FILE,
+            PARAKEET_DECODER_FILE,
+            PARAKEET_JOINER_FILE,
+            PARAKEET_TOKENS_FILE
+        )
+        if (!extracted.isDirectory || !required.all { File(extracted, it).isFile }) return false
+        finalDir.deleteRecursively()
+        if (!extracted.renameTo(finalDir)) extracted.copyRecursively(finalDir, overwrite = true)
+        return isParakeetReady(context)
     }
 
     private fun extractModelArchive(archive: File, stagingDir: File) {
@@ -76,17 +99,25 @@ class ParakeetDownloader(private val context: Context) {
             while (true) {
                 val entry = tar.nextTarEntry ?: break
                 val output = File(stagingDir, entry.name).canonicalFile
-                require(output.path.startsWith(root.path + File.separator)) { "Unsafe archive path: ${entry.name}" }
+                require(output.path.startsWith(root.path + File.separator)) {
+                    "Unsafe archive path: ${entry.name}"
+                }
                 val filename = entry.name.removePrefix(modelPrefix)
                 if (!entry.isDirectory && entry.name.startsWith(modelPrefix) && filename in required) {
                     output.parentFile?.mkdirs()
                     output.outputStream().use { out ->
                         val buffer = ByteArray(65_536)
-                        var read: Int
-                        while (tar.read(buffer).also { read = it } >= 0) out.write(buffer, 0, read)
+                        var remaining = entry.size
+                        while (remaining > 0) {
+                            val requestSize = minOf(buffer.size.toLong(), remaining).toInt()
+                            val read = tar.read(buffer, 0, requestSize)
+                            check(read > 0) { "Unexpected end of Parakeet archive" }
+                            out.write(buffer, 0, read)
+                            remaining -= read
+                        }
                     }
-                    // Only the runtime files are needed. Skipping archive extras prevents
-                    // first-run setup from waiting on unrelated archive content.
+                    // The app only needs these four files. Avoid extracting unrelated
+                    // archive entries after they are all present.
                     if (required.all { File(extracted, it).isFile }) break
                 }
             }
