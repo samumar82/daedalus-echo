@@ -1,7 +1,9 @@
 # Daedalus Echo
 [![CI](https://github.com/DaedalusApps/daedalus-echo/actions/workflows/ci.yml/badge.svg)](https://github.com/DaedalusApps/daedalus-echo/actions/workflows/ci.yml)
 
-A standalone Android voice recorder, transcription, and AI analysis application. Records audio directly (using the built-in or Bluetooth microphone), transcribes recordings on-device with Whisper, generates smart summaries and interactive mind maps with Gemma 3, and lets you ask semantic questions across your entire library — all running 100% locally on-device.
+A standalone Android voice recorder, transcription, and AI analysis application. Records audio directly (using the built-in or Bluetooth microphone), transcribes recordings on-device with Parakeet TDT v3, generates smart summaries and interactive mind maps with Gemma 3, and lets you ask semantic questions across your entire library — all running 100% locally on-device.
+
+> **Fork notice:** this repository is an independent fork of [DaedalusApps/daedalus-echo](https://github.com/DaedalusApps/daedalus-echo). It preserves the upstream [MIT License](LICENSE) and copyright notice. The Italian-first meeting additions are not affiliated with or endorsed by DaedalusApps. See [NOTICE.md](NOTICE.md) for attribution, model, and distribution notes.
 
 **[Visit the project landing page](https://echo.daedalusapps.com)** · [Privacy Policy](https://echo.daedalusapps.com/privacy.html)
 
