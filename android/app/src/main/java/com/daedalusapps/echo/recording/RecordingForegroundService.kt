@@ -49,8 +49,13 @@ class RecordingForegroundService : Service() {
                 RecordingControlBus.send(RecordingControlBus.Command.RESUME)
                 showNotification(isPaused = false)
             }
-            ACTION_STOP -> {
+            ACTION_STOP_CONTROL -> {
+                // The ViewModel finalizes the MediaRecorder, then asks us to finish.
+                // Keeping this service alive for that brief hand-off avoids a background
+                // service restart race on recent Android versions.
                 RecordingControlBus.send(RecordingControlBus.Command.STOP)
+            }
+            ACTION_FINISH -> {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -82,7 +87,7 @@ class RecordingForegroundService : Service() {
                 NotificationCompat.Action.Builder(
                     android.R.drawable.ic_menu_close_clear_cancel,
                     "Stop",
-                    servicePendingIntent(ACTION_STOP, REQUEST_STOP)
+                    servicePendingIntent(ACTION_STOP_CONTROL, REQUEST_STOP)
                 ).build()
             )
             .build()
@@ -114,7 +119,8 @@ class RecordingForegroundService : Service() {
         private const val EXTRA_FILENAME = "extra_filename"
         private const val ACTION_PAUSE = "com.daedalusapps.echo.PAUSE_RECORDING_SERVICE"
         private const val ACTION_RESUME = "com.daedalusapps.echo.RESUME_RECORDING_SERVICE"
-        private const val ACTION_STOP = "com.daedalusapps.echo.STOP_RECORDING_SERVICE"
+        private const val ACTION_STOP_CONTROL = "com.daedalusapps.echo.STOP_RECORDING_CONTROL"
+        private const val ACTION_FINISH = "com.daedalusapps.echo.FINISH_RECORDING_SERVICE"
         private const val REQUEST_PRIMARY = 4203
         private const val REQUEST_STOP = 4204
 
@@ -131,7 +137,7 @@ class RecordingForegroundService : Service() {
         fun stop(context: Context) {
             context.startService(
                 Intent(context, RecordingForegroundService::class.java).apply {
-                    action = ACTION_STOP
+                    action = ACTION_FINISH
                 }
             )
         }
