@@ -21,7 +21,7 @@ import com.daedalusapps.echo.ai.LocalLlmService
 import com.daedalusapps.echo.ai.MarkdownExporter
 import com.daedalusapps.echo.ai.TranscriptFormatter
 import com.daedalusapps.echo.ai.TranscriptionService
-import com.daedalusapps.echo.ai.isWhisperReady
+import com.daedalusapps.echo.ai.isParakeetReady
 import com.daedalusapps.echo.data.RecordingRepository
 import com.daedalusapps.echo.data.db.AppDatabase
 import com.daedalusapps.echo.data.model.AudioUtils
@@ -380,7 +380,7 @@ class RecordingViewModel @JvmOverloads constructor(
             Log.i("DaedalusAI", "Transcribing ${localFile.name}")
             val transcript = transcriber.transcribe(localFile)
             if (transcript.isBlank()) {
-                val modelReady = isWhisperReady(getApplication())
+                val modelReady = isParakeetReady(getApplication())
                 _aiError.value = if (modelReady) {
                     "No speech detected in this recording (too short or silent)."
                 } else {
