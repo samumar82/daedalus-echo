@@ -38,11 +38,10 @@ const val PARAKEET_JOINER_FILE = "joiner.int8.onnx"
 const val PARAKEET_TOKENS_FILE = "tokens.txt"
 // Created only after all model files have been written completely.
 const val PARAKEET_READY_MARKER = ".install-complete"
-const val PARAKEET_ARCHIVE_URL =
-    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" +
-        "$PARAKEET_MODEL_ID.tar.bz2"
-// Keep this as an estimate: the release asset can be recompressed upstream.
-const val PARAKEET_TOTAL_BYTES = 1_250_000_000L
+// Individual files avoid archive extraction on the phone. Each is verified by SHA-256.
+const val PARAKEET_MODEL_URL_BASE =
+    "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main/"
+const val PARAKEET_TOTAL_BYTES = 670_478_772L
 
 // Kept only for source compatibility with the deprecated downloader. New flows never call it.
 @Deprecated("Use Parakeet") const val WHISPER_ENCODER_FILE = "base.en-encoder.int8.onnx"
