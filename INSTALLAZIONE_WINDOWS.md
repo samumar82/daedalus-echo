@@ -37,7 +37,9 @@ riesegui lo stesso comando.
 2. Tieni l'app aperta mentre scarica i modelli.
 3. La build scarica e verifica i file Parakeet singolarmente; non chiudere
    l'app prima del messaggio di completamento.
-4. Poi registra una prova breve, premi stop e verifica trascrizione e
+4. Quando Android chiede l'autorizzazione alle **notifiche**, scegli **Consenti**:
+   serve per i controlli Pausa/Riprendi e Stop visibili anche a schermo bloccato.
+5. Poi registra una prova breve, premi stop e verifica trascrizione e
    riepilogo.
 
 I modelli vengono elaborati sul telefono. Servono almeno **2 GB liberi** per
