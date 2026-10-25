@@ -137,8 +137,8 @@ dependencies {
     // HTTP (model download only)
     implementation(libs.okhttp)
 
-    // On-device AI — MediaPipe LLM Inference (tasks-genai .bin format models)
-    implementation(libs.mediapipe.genai)
+    // On-device local LLM runtime for modern .litertlm Gemma models.
+    implementation(libs.litertlm.android)
     // On-device text embeddings for semantic note search
     implementation(libs.mediapipe.tasks.text)
 
