@@ -55,12 +55,14 @@ class TranscriptionService(private val context: Context) {
             while (offset < pcm.size) {
                 val end = minOf(offset + CHUNK_SAMPLES, pcm.size)
                 val chunk = pcm.copyOfRange(offset, end)
-                Log.i(TAG, "Decoding Parakeet chunk ${chunkIndex + 1}/$totalChunks (${chunk.size} samples)")
+                val meanLevel = chunk.fold(0.0) { total, sample -> total + kotlin.math.abs(sample) } / chunk.size
+                Log.i(TAG, "Decoding Parakeet chunk ${chunkIndex + 1}/$totalChunks (mean level=$meanLevel)")
                 val stream = recognizer.createStream()
                 stream.acceptWaveform(samples = chunk, sampleRate = TARGET_SAMPLE_RATE)
                 recognizer.decode(stream)
                 val chunkText = recognizer.getResult(stream).text.trim()
                 stream.release()
+                Log.i(TAG, "Parakeet chunk ${chunkIndex + 1}/$totalChunks produced ${chunkText.length} characters")
                 if (chunkText.isNotEmpty()) parts.add(chunkText)
                 chunkIndex++
                 offset = end
