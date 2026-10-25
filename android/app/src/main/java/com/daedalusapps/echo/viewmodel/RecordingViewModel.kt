@@ -31,6 +31,7 @@ import com.daedalusapps.echo.data.model.AudioUtils
 import com.daedalusapps.echo.data.model.Recording
 import com.daedalusapps.echo.recording.AudioRecorder
 import com.daedalusapps.echo.recording.RecordingForegroundService
+import com.daedalusapps.echo.recording.RecordingControlBus
 import com.daedalusapps.echo.ui.mindmap.GlobalGraph
 import com.daedalusapps.echo.ui.mindmap.GraphBuilder
 import kotlinx.coroutines.CoroutineDispatcher
@@ -158,6 +159,18 @@ class RecordingViewModel @JvmOverloads constructor(
             }
         } else {
             useBluetoothMic.value = savedVal
+        }
+
+        // Commands from the persistent lock-screen notification. The foreground
+        // service keeps this process alive while recording is active.
+        viewModelScope.launch {
+            RecordingControlBus.commands.collect { command ->
+                when (command) {
+                    RecordingControlBus.Command.PAUSE -> pauseLocalRecording()
+                    RecordingControlBus.Command.RESUME -> resumeLocalRecording()
+                    RecordingControlBus.Command.STOP -> stopLocalRecording()
+                }
+            }
         }
 
         // Heal missing durations for already synced/recorded files
