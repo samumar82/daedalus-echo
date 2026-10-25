@@ -197,7 +197,7 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                     }
                 }
 
-                DownloadStep.EMBEDDING, DownloadStep.PARAKEET, DownloadStep.GEMMA -> {
+                DownloadStep.EMBEDDING, DownloadStep.PARAKEET -> {
                     Text(statusText, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(20.dp))
                     LinearProgressIndicator(progress = { progressPct / 100f }, modifier = Modifier.fillMaxWidth())
