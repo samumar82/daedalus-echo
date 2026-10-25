@@ -19,7 +19,6 @@ enum class DownloadStep {
     IDLE,
     EMBEDDING,
     PARAKEET,
-    GEMMA,
     DONE,
     FAILED
 }
@@ -40,8 +39,7 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
     // Start download worker
     suspend fun performSequentialDownload() {
         if (downloadStep == DownloadStep.EMBEDDING ||
-            downloadStep == DownloadStep.PARAKEET ||
-            downloadStep == DownloadStep.GEMMA) {
+            downloadStep == DownloadStep.PARAKEET) {
             return
         }
         errorMessage = null
@@ -50,7 +48,6 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
         withContext(Dispatchers.IO) {
             val embeddingDownloader = ModelDownloader(context)
             val parakeetDownloader = ParakeetDownloader(context)
-            val gemmaDownloader = ModelDownloader(context)
 
             // Step 1: Embedding Model (26 MB)
             val embeddingModel = LocalModel(
@@ -65,14 +62,14 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                 withContext(Dispatchers.Main) {
                     downloadStep = DownloadStep.EMBEDDING
                     progressPct = 0
-                    statusText = "Downloading Embedding Model (1/3)…"
+                    statusText = "Downloading Embedding Model (1/2)…"
                 }
                 val job = launch {
                     embeddingDownloader.state.collect { state ->
                         if (state is DownloadState.Downloading) {
                             withContext(Dispatchers.Main) {
                                 progressPct = state.progressPct
-                                statusText = "Downloading Embedding Model (1/3): ${state.progressPct}%"
+                                statusText = "Downloading Embedding Model (1/2): ${state.progressPct}%"
                             }
                         }
                     }
@@ -103,19 +100,19 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                 withContext(Dispatchers.Main) {
                     downloadStep = DownloadStep.PARAKEET
                     progressPct = 0
-                    statusText = "Downloading Parakeet Italian model (2/3)…"
+                    statusText = "Downloading Parakeet Italian model (2/2)…"
                 }
                 val job = launch {
                     parakeetDownloader.state.collect { state ->
                         if (state is DownloadState.Downloading) {
                             withContext(Dispatchers.Main) {
                                 progressPct = state.progressPct
-                                statusText = "Downloading Parakeet Italian model (2/3): ${state.progressPct}%"
+                                statusText = "Downloading Parakeet Italian model (2/2): ${state.progressPct}%"
                             }
                         } else if (state is DownloadState.Installing) {
                             withContext(Dispatchers.Main) {
                                 progressPct = 100
-                                statusText = "Installing Parakeet Italian model (2/3)…"
+                                statusText = "Installing Parakeet Italian model (2/2)…"
                             }
                         }
                     }
@@ -136,44 +133,6 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                     withContext(Dispatchers.Main) {
                         downloadStep = DownloadStep.FAILED
                         errorMessage = "Parakeet model failed: ${e.message}"
-                    }
-                    return@withContext
-                }
-            }
-
-            // Step 3: Gemma 3 1B (555 MB)
-            if (!hasSummaryModel(context)) {
-                withContext(Dispatchers.Main) {
-                    downloadStep = DownloadStep.GEMMA
-                    progressPct = 0
-                    statusText = "Downloading Gemma 3 1B Model (3/3)…"
-                }
-                val job = launch {
-                    gemmaDownloader.state.collect { state ->
-                        if (state is DownloadState.Downloading) {
-                            withContext(Dispatchers.Main) {
-                                progressPct = state.progressPct
-                                statusText = "Downloading Gemma 3 1B Model (3/3): ${state.progressPct}%"
-                            }
-                        }
-                    }
-                }
-                try {
-                    gemmaDownloader.download(GEMMA3_1B)
-                    job.cancel()
-                    val finalState = gemmaDownloader.state.value
-                    if (finalState is DownloadState.Failed) {
-                        withContext(Dispatchers.Main) {
-                            downloadStep = DownloadStep.FAILED
-                            errorMessage = "Gemma model failed: ${finalState.message}"
-                        }
-                        return@withContext
-                    }
-                } catch (e: Exception) {
-                    job.cancel()
-                    withContext(Dispatchers.Main) {
-                        downloadStep = DownloadStep.FAILED
-                        errorMessage = "Gemma model failed: ${e.message}"
                     }
                     return@withContext
                 }
@@ -264,9 +223,8 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                     Text(
                         "Daedalus processes transcription and summaries entirely on-device for 100% privacy. To begin, click below to download the required models:\n\n" +
                         "• Universal Sentence Encoder (~26 MB)\n" +
-                        "• Parakeet TDT v3 multilingual (~1.25 GB)\n" +
-                        "• Gemma 3 1B (~555 MB), unless Gemma 4 is already installed\n\n" +
-                        "Total size is ~1.85 GB. Parakeet recognizes Italian and other European languages locally; speaker identity is not inferred.",
+                        "• Parakeet TDT v3 multilingual (~1.25 GB)\n\n" +
+                        "Then import Gemma 4 E2B from Settings to create local summaries. Parakeet recognizes Italian and other European languages locally; speaker identity is not inferred.",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Start,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -276,7 +234,7 @@ fun ModelDownloadScreen(onReady: () -> Unit) {
                         onClick = { scope.launch { performSequentialDownload() } },
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) {
-                        Text("Download All Models (One-Click)")
+                        Text("Download required speech models")
                     }
                 }
             }
