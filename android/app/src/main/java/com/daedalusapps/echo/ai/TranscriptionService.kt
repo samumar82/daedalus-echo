@@ -49,16 +49,20 @@ class TranscriptionService(private val context: Context) {
             Log.i(TAG, "Decoded ${pcm.size} float samples, feeding to Parakeet")
 
             val parts = mutableListOf<String>()
+            val totalChunks = (pcm.size + CHUNK_SAMPLES - 1) / CHUNK_SAMPLES
+            var chunkIndex = 0
             var offset = 0
             while (offset < pcm.size) {
                 val end = minOf(offset + CHUNK_SAMPLES, pcm.size)
                 val chunk = pcm.copyOfRange(offset, end)
+                Log.i(TAG, "Decoding Parakeet chunk ${chunkIndex + 1}/$totalChunks (${chunk.size} samples)")
                 val stream = recognizer.createStream()
                 stream.acceptWaveform(samples = chunk, sampleRate = TARGET_SAMPLE_RATE)
                 recognizer.decode(stream)
                 val chunkText = recognizer.getResult(stream).text.trim()
                 stream.release()
                 if (chunkText.isNotEmpty()) parts.add(chunkText)
+                chunkIndex++
                 offset = end
             }
 
@@ -137,7 +141,12 @@ class TranscriptionService(private val context: Context) {
                         }
 
                         val outputBuf = codec.getOutputBuffer(outputIdx)!!
-                        val shortBuf = outputBuf.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                        // MediaCodec buffers can contain bytes outside BufferInfo's valid
+                        // range. Respect offset/size so long recordings never mix stale
+                        // PCM from a previous output buffer into the transcript.
+                        outputBuf.position(info.offset)
+                        outputBuf.limit(info.offset + info.size)
+                        val shortBuf = outputBuf.slice().order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
                         val samples = ShortArray(shortBuf.remaining())
                         shortBuf.get(samples)
 
