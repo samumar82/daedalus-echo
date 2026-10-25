@@ -61,20 +61,20 @@ suspend fun analyzeTranscript(
         minOf(aiTextBudget(context), SUMMARY_CHUNK_BUDGET)
     )
     val rawResponse = if (!needsBulletSynthesis(transcript.length, chunks.size)) {
-        onProgress?.invoke("Creating summary: 85%")
+        onProgress?.invoke("Summary: 50%")
         llm.generate(activePrompt(context), chunks[0])
     } else {
         // "Section" rather than "part": a split recording's parts are a different thing, and
         // this progress text sits right under a part's own title.
         val chunkSummaries = chunks.mapIndexed { i, chunk ->
-            val percent = 70 + ((i + 1) * 25 / chunks.size)
+            val percent = (i + 1) * 80 / chunks.size
             onProgress?.invoke(
-                if (chunks.size == 1) "Creating summary: $percent%"
-                else "Creating summary: $percent% (section ${i + 1} of ${chunks.size})"
+                if (chunks.size == 1) "Summary: $percent%"
+                else "Summary: $percent% (section ${i + 1} of ${chunks.size})"
             )
             llm.generate(CHUNK_SUMMARY_PROMPT, chunk)
         }
-        onProgress?.invoke("Finalizing summary: 96%")
+        onProgress?.invoke("Summary: 90% — finalizing…")
         llm.generate(activePrompt(context), chunkSummaries.joinToString("\n\n"))
     }
     val cleanJson = stripCodeFences(rawResponse)
