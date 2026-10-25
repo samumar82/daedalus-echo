@@ -136,6 +136,7 @@ dependencies {
 
     // HTTP (model download only)
     implementation(libs.okhttp)
+    implementation("org.apache.commons:commons-compress:1.27.1")
 
     // On-device AI — MediaPipe LLM Inference (tasks-genai .bin format models)
     implementation(libs.mediapipe.genai)
