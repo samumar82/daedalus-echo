@@ -28,6 +28,7 @@ import com.daedalusapps.echo.ai.EMBEDDING_MODEL_SIZE_BYTES
 import com.daedalusapps.echo.ai.EMBEDDING_MODEL_URL
 import com.daedalusapps.echo.ai.GEMMA3_1B
 import com.daedalusapps.echo.ai.LocalModel
+import com.daedalusapps.echo.ai.MEETING_GLOSSARY_KEY
 import com.daedalusapps.echo.ai.ModelDownloader
 import com.daedalusapps.echo.ai.PARAKEET_TOTAL_BYTES
 import com.daedalusapps.echo.ai.ParakeetDownloader
