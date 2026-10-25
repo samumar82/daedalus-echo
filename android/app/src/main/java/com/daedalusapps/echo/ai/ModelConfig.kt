@@ -36,6 +36,8 @@ const val PARAKEET_ENCODER_FILE = "encoder.int8.onnx"
 const val PARAKEET_DECODER_FILE = "decoder.int8.onnx"
 const val PARAKEET_JOINER_FILE = "joiner.int8.onnx"
 const val PARAKEET_TOKENS_FILE = "tokens.txt"
+// Created only after all model files have been written completely.
+const val PARAKEET_READY_MARKER = ".install-complete"
 const val PARAKEET_ARCHIVE_URL =
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" +
         "$PARAKEET_MODEL_ID.tar.bz2"
@@ -71,10 +73,11 @@ fun whisperModelDir(context: Context): File = File(modelsDir(context), "deprecat
 
 fun isParakeetReady(context: Context): Boolean {
     val dir = parakeetModelDir(context)
-    return File(dir, PARAKEET_ENCODER_FILE).exists() &&
-        File(dir, PARAKEET_DECODER_FILE).exists() &&
-        File(dir, PARAKEET_JOINER_FILE).exists() &&
-        File(dir, PARAKEET_TOKENS_FILE).exists()
+    return File(dir, PARAKEET_READY_MARKER).isFile &&
+        File(dir, PARAKEET_ENCODER_FILE).isFile &&
+        File(dir, PARAKEET_DECODER_FILE).isFile &&
+        File(dir, PARAKEET_JOINER_FILE).isFile &&
+        File(dir, PARAKEET_TOKENS_FILE).isFile
 }
 
 fun modelFile(context: Context): File =
