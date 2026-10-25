@@ -24,6 +24,22 @@ val GEMMA3_1B = LocalModel(
 )
 
 /**
+ * Preferred meeting-summary model. It uses LiteRT-LM rather than the retired
+ * MediaPipe task format. The Gemma licence must be accepted before downloading
+ * the file; it is imported deliberately through Settings.
+ */
+const val GEMMA4_E2B_FILE = "gemma-4-E2B-it.litertlm"
+const val GEMMA4_E2B_PREF = "use_gemma4_e2b"
+const val GEMMA4_E2B_MIN_BYTES = 2_300_000_000L
+
+fun gemma4E2bFile(context: Context): File =
+    File(modelsDir(context), GEMMA4_E2B_FILE)
+
+fun useGemma4E2b(context: Context): Boolean =
+    context.getSharedPreferences("daedalus_prefs", Context.MODE_PRIVATE)
+        .getBoolean(GEMMA4_E2B_PREF, false) && gemma4E2bFile(context).length() >= GEMMA4_E2B_MIN_BYTES
+
+/**
  * Parakeet TDT v3 is the Italian-first transcription engine.  It is a
  * multilingual NeMo transducer exported to int8 ONNX by sherpa-onnx, so all
  * inference remains on the phone.  The archive is deliberately downloaded
