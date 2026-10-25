@@ -226,7 +226,7 @@ private fun createExtractiveSummary(transcript: String): String {
     val sentences = transcript
         .replace(Regex("""\s+"""), " ")
         .split(Regex("""(?<=[.!?])\s+"""))
-        .map(String::trim)
+        .map { it.trim() }
         .filter { it.length >= 45 }
 
     val excerpt = sentences.take(5).joinToString("\n\n")
