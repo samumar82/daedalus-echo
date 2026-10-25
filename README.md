@@ -5,7 +5,7 @@ A standalone Android voice recorder, transcription, and AI analysis application.
 
 > **Fork notice:** this repository is an independent fork of [DaedalusApps/daedalus-echo](https://github.com/DaedalusApps/daedalus-echo). It preserves the upstream [MIT License](LICENSE) and copyright notice. The Italian-first meeting additions are not affiliated with or endorsed by DaedalusApps. See [NOTICE.md](NOTICE.md) for attribution, model, and distribution notes.
 
-**[Visit the project landing page](https://echo.daedalusapps.com)** · [Privacy Policy](https://echo.daedalusapps.com/privacy.html)
+**[Installazione facile su Windows e Galaxy](INSTALLAZIONE_WINDOWS.md)** · **[Visit the project landing page](https://echo.daedalusapps.com)** · [Privacy Policy](https://echo.daedalusapps.com/privacy.html)
 
 ## Features
 
@@ -34,7 +34,7 @@ A standalone Android voice recorder, transcription, and AI analysis application.
 | **Android** | ARM64, API 26+ (Android 8.0) |
 | **RAM** | 4 GB minimum (6 GB or more recommended for smooth execution) |
 | **GPU** | Vulkan 1.1+ support recommended for GPU acceleration of Gemma 3 |
-| **Storage** | ~700 MB free (Gemma 3 1B: ~555 MB · Whisper base.en: ~119 MB · text embedder: ~26 MB) |
+| **Storage** | 2 GB free recommended (Gemma 3 1B: ~555 MB · Parakeet TDT v3: ~670 MB · text embedder: ~26 MB) |
 
 ### Device Compatibility
 
@@ -68,7 +68,7 @@ Popular compatible device series include:
    ```
 3. On first launch the app will prompt you to download the AI models from Settings:
    - **Gemma 3 1B** (~555 MB) — on-device summarization and Q&A
-   - **Parakeet TDT v3 int8** (~1.25 GB) — Italian-first multilingual on-device speech-to-text
+   - **Parakeet TDT v3 int8** (~670 MB) — Italian-first multilingual on-device speech-to-text; each file is verified before activation
    - **Universal Sentence Encoder** (~26 MB) — on-device text embeddings for semantic Ask
 4. Tap the record button on the home screen to start recording audio.
 
@@ -100,7 +100,7 @@ Beyond per-recording analysis, **Ask Your Notes** embeds every transcript on-dev
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM · Room · StateFlow |
 | On-device LLM | MediaPipe 0.10.35 + Gemma 3 1B (`.task` format) |
-| Transcription | sherpa-onnx 1.13.2 + Parakeet TDT v3 int8 ONNX |
+| Transcription | sherpa-onnx 1.13.8 + Parakeet TDT v3 int8 ONNX |
 | Semantic search | MediaPipe Text Embedder + Universal Sentence Encoder |
 | Audio Recording | AudioRecord + Bluetooth SCO support |
 | Database | Room 2.6.1 + SQLite WAL |
