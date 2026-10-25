@@ -401,7 +401,16 @@ class RecordingViewModel @JvmOverloads constructor(
             _syncProgress.value = "Transcribing audio…"
             AnalysisForegroundService.start(getApplication(), filename, "Transcribing audio…")
             Log.i("DaedalusAI", "Transcribing ${localFile.name}")
-            val transcript = transcriber.transcribe(localFile)
+            val transcript = transcriber.transcribe(localFile) { completed, total ->
+                val progress = if (total == 0) 0 else (completed * 100 / total)
+                val status = if (completed == 0) {
+                    "Preparing audio for transcription…"
+                } else {
+                    "Transcribing audio: $progress% ($completed/$total sections)"
+                }
+                _syncProgress.value = status
+                AnalysisForegroundService.start(getApplication(), filename, status)
+            }
             if (transcript.isBlank()) {
                 val modelReady = isParakeetReady(getApplication())
                 _aiError.value = if (modelReady) {
