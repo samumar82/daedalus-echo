@@ -36,7 +36,8 @@ riesegui lo stesso comando.
 1. Apri l'app e premi **Download All Models**.
 2. Tieni l'app aperta mentre scarica i modelli.
 3. La build scarica e verifica i file Parakeet singolarmente; non chiudere
-   l'app prima del messaggio di completamento.
+   l'app prima del messaggio di completamento. Se Gemma 4 E2B è già presente,
+   la configurazione iniziale la riconosce e non riscarica Gemma 3.
 4. Quando Android chiede l'autorizzazione alle **notifiche**, scegli **Consenti**:
    serve per i controlli Pausa/Riprendi e Stop visibili anche a schermo bloccato.
 5. Poi registra una prova breve, premi stop e verifica trascrizione e
