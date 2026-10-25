@@ -1,11 +1,14 @@
 package com.daedalusapps.echo.viewmodel
 
 import android.app.Application
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -270,6 +273,9 @@ class RecordingViewModel @JvmOverloads constructor(
             val duration = _recordingDurationSeconds.value * 1000L
             val name = file.name
             viewModelScope.launch {
+                // Keep a user-visible safety copy outside the app sandbox. It survives
+                // app updates/uninstalls and is stored as a document, not music.
+                withContext(ioDispatcher) { copyAudioToDocuments(file) }
                 val recording = Recording(
                     filename = name,
                     localPath = file.absolutePath,
@@ -457,6 +463,40 @@ class RecordingViewModel @JvmOverloads constructor(
             delay(1000)
             _syncProgress.value = null
             _isProcessing.value = false
+        }
+    }
+
+    /**
+     * Makes a best-effort archival copy in Documents/Daedalus Echo. The MIME type is
+     * deliberately generic so music players do not add recordings to their library.
+     */
+    private fun copyAudioToDocuments(source: File) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        try {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, source.name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + "/Daedalus Echo")
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            val resolver = getApplication<Application>().contentResolver
+            val uri = resolver.insert(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values)
+                ?: error("Could not create archival copy")
+            try {
+                resolver.openOutputStream(uri)?.use { output ->
+                    source.inputStream().use { input -> input.copyTo(output) }
+                } ?: error("Could not open archival copy")
+                resolver.update(uri, ContentValues().apply {
+                    put(MediaStore.MediaColumns.IS_PENDING, 0)
+                }, null, null)
+                Log.i("RecordingViewModel", "Archived audio copy in Documents/Daedalus Echo: ${source.name}")
+            } catch (e: Exception) {
+                resolver.delete(uri, null, null)
+                throw e
+            }
+        } catch (e: Exception) {
+            // Recording and local analysis must remain usable even if shared storage is unavailable.
+            Log.w("RecordingViewModel", "Could not archive audio copy", e)
         }
     }
 
