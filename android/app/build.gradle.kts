@@ -28,7 +28,7 @@ val vName = versionProps.getProperty("VERSION_NAME", "1.0.0")
 
 // sherpa-onnx ships only a prebuilt Android .aar (no Maven artifact), so we fetch it
 // at build time instead of committing the 56 MB binary. See downloadSherpaOnnx below.
-val sherpaOnnxVersion = "1.13.2"
+val sherpaOnnxVersion = "1.13.8"
 
 val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
@@ -136,7 +136,6 @@ dependencies {
 
     // HTTP (model download only)
     implementation(libs.okhttp)
-    implementation("org.apache.commons:commons-compress:1.27.1")
 
     // On-device AI — MediaPipe LLM Inference (tasks-genai .bin format models)
     implementation(libs.mediapipe.genai)
