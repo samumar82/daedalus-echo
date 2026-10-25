@@ -79,6 +79,7 @@ class AnalysisForegroundService : Service() {
         const val EXTRA_STATUS = "extra_status"
         const val ACTION_START = "com.daedalusapps.echo.START_ANALYSIS_SERVICE"
         const val ACTION_STOP = "com.daedalusapps.echo.STOP_ANALYSIS_SERVICE"
+        private const val MAX_ANALYSIS_WAKE_LOCK_MILLIS = 6 * 60 * 60 * 1000L
 
         fun start(context: Context, filename: String, status: String) {
             try {
