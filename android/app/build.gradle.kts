@@ -136,6 +136,8 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
+    // LiteRT-LM 0.18 carries Kotlin 2.4 metadata; Room 2.8 needs this newer reader on KAPT\'s processor path.
+    kapt("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.21")
 
     // HTTP (model download only)
     implementation(libs.okhttp)
